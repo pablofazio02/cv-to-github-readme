@@ -37,6 +37,12 @@
 <details open>
 <summary><h2>📊 GitHub Stats</h2></summary>
 <p align="center">
-  <!-- ... aquí van las stats ... -->
+  <img src="https://github-readme-stats.vercel.app/api?username=pablofazio02&show_icons=true&theme=radical&hide_border=true" alt="GitHub Stats">
+</p>
+<p align="center">
+  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=pablofazio02&layout=compact&theme=radical&hide_border=true" alt="Top Languages">
+</p>
+<p align="center">
+  <img src="https://github-readme-streak-stats.herokuapp.com/?user=pablofazio02&theme=radical&hide_border=true" alt="GitHub Streak">
 </p>
 </details>
