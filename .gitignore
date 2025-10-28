@@ -1,5 +1,5 @@
 uploads/
 *.pyc
 __pycache__/
-.env
+venv/
 generated_README.md

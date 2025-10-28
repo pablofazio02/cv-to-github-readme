@@ -1,36 +1,73 @@
-# Generador de README para GitHub a partir de CV en PDF
+# cv-to-github-readme
 
-Este proyecto genera un archivo `README.md` para tu perfil de GitHub, extrayendo datos de tu Curriculum Vitae en PDF.
+Local CLI tool that parses a PDF CV and generates a GitHub profile README (in Markdown). The tool extracts primary contact info, public profiles and skills and builds a ready-to-use README template with optional GitHub stats badges.
 
-## ¿Cómo funciona?
+## Features
 
-1. Ejecuta el servidor Flask en tu máquina local.
-2. Accede a la web local.
-3. Sube tu CV en PDF.
-4. Descarga el README.md ya generado y listo para personalizar.
+- Extracts: first name, last name, email, LinkedIn, GitHub, other public profiles (GitLab, Bitbucket, ResearchGate, ORCID, Google Scholar, ...) and a skills list.
+- Generates a GitHub-friendly README.md with:
+  - Centered social icons (only shown when present)
+  - Language badges (user-specific search links)
+  - GitHub stats + top languages cards
+  - Optional GitHub streak badge
+  - Skills section
+- Fully local: no server required, no uploads — all processing happens on your machine.
+- CLI preview and interactive editing before writing the README file.
+- Optional auto-open in VS Code preview.
 
-## Privacidad
+## Quick install (Windows)
 
-- El archivo PDF se procesa solo localmente.
-- No se almacena ni se envía a servidores externos.
-- El README generado puede contener datos personales: revisa y edita antes de subirlo a GitHub.
+1. Ensure Python 3.8+ is installed and `python` is available in PATH.
+2. Create and activate a virtual environment:
 
-## Instalación rápida
+```powershell
+# Create virtual environment
+python -m venv venv
 
-```bash
-python3 -m venv venv
-source venv/bin/activate
+# CMD activation
+.\venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
-python app.py
+
+# Run the app
+python app.py "C:\path\to\CV.pdf" -o generated_README.md [--no-edit] [--open-vscode]
 ```
 
-Luego accede a `http://localhost:5000` en tu navegador.
+## Quick install (Linux / macOS)
 
-## Personalización
+1. Ensure Python 3.8+ is installed and `python3` is available in PATH.
+2. Create and activate a virtual environment:
+```bash
+# Create virtual environment
+python3 -m venv venv
 
-- Edita la plantilla `example_README.md` para adaptarla a tu estilo y datos.
-- La extracción automática del CV se puede mejorar integrando librerías como `pdfplumber`.
+# Activate virtual environment
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the app
+python3 app.py "/path/to/CV.pdf" -o generated_README.md [--no-edit] [--open-vscode]
+```
+
+## Privacy
+- All parsing and image downloading run locally on your machine.
+- No files or extracted data are uploaded or sent to external servers by this tool.
+- The README generated may contain personal links and contact information — review and sanitize before publishing.
+
+
+## License
+MIT License — see LICENSE file. Short summary: you are free to use, modify and distribute the code. No warranty provided.
+
+
+## To Do / Contribute
+- Add more profile hosts and skill parsing improvements.
+- New README template options.
+- Support for more input formats (DOCX, ODT, etc.).
+- Improve regular expressions detection (e.g. usernames with Unicode characters).
 
 ---
 
-¿Dudas, sugerencias? ¡Crea un issue!
+Contributions, issues and improvements are welcome. Create an issue if you have parser edge-cases to add (new profile hosts, language badge tweaks, extraction heuristics).
