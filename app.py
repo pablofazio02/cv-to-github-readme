@@ -1,5 +1,5 @@
 """
-CLI para generar README a partir de un CV en PDF (sin servidor web)
+CLI para generar README a partir de un CV en PDF (local)
 Uso:
     python app.py ruta/al/cv.pdf -o salida_README.md [--no-edit]
 """
@@ -44,16 +44,16 @@ def main():
         print("Error extrayendo datos del PDF:", e)
         sys.exit(1)
 
-    print("\n--- PREVIEW (datos extraídos) ---")
+    print("\n--- PREVIEW (Extracted Data) ---\n")
     for k, v in data.items():
         if k == "skills":
             print(f"{k}: {', '.join(v)}")
         else:
             print(f"{k}: {v}")
-    print("--- FIN PREVIEW ---\n")
+    print("\n--- PREVIEW END ---\n")
 
     if not args.no_edit:
-        ans = input("¿Quieres editar los valores antes de generar el README? [Y/n]: ").strip().lower()
+        ans = input("Do you want to edit the values before generating the README? [Y/n]: ").strip().lower()
         if ans in ("", "y", "yes"):
             data = prompt_edit(data)
 

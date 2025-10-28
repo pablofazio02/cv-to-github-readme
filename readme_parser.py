@@ -1,56 +1,10 @@
 """
-README Parser - Módulo principal
+================================
+README Parser - Principal Module
+
+Author: Pablo Fazio Arrabal
 ================================
 """
-
-from pdf_extractor import extract_data_from_pdf
-from readme_generator import generate_readme
-
-# Re-exportar las funciones principales para mantener compatibilidad
-__all__ = ['extract_data_from_pdf', 'generate_readme']
-
-
-def process_cv_to_readme(pdf_path: str) -> str:
-    """
-    Función de conveniencia que procesa un CV completo en una sola llamada.
-    
-    Args:
-        pdf_path (str): Ruta al archivo PDF del CV
-        
-    Returns:
-        str: Contenido completo del README.md generado
-        
-    Example:
-        >>> readme_content = process_cv_to_readme("mi_cv.pdf")
-        >>> with open("README.md", "w", encoding="utf-8") as f:
-        ...     f.write(readme_content)
-    """
-    data = extract_data_from_pdf(pdf_path)
-    return generate_readme(data)
-
-
-def get_extracted_data_preview(pdf_path: str) -> dict:
-    """
-    Extrae y muestra un preview de los datos encontrados en el CV.
-    
-    Args:
-        pdf_path (str): Ruta al archivo PDF del CV
-        
-    Returns:
-        dict: Datos extraídos con conteos adicionales para debug
-    """
-    data = extract_data_from_pdf(pdf_path)
-    
-    # Agregar información de debug
-    data['_debug_info'] = {
-        'experience_count': len(data.get('experience', [])),
-        'education_count': len(data.get('education', [])),
-        'skills_count': len(data.get('skills', [])),
-        'has_contact_info': bool(data.get('email') or data.get('linkedin')),
-        'has_github': bool(data.get('github'))
-    }
-    
-    return data
 
 """
 Extracción mínima desde PDF y generación de README (local).
@@ -102,26 +56,138 @@ def extract_data_from_pdf(path):
             last_name = " ".join(parts[1:])
             break
 
-    # email (cualquiera)
-    email_match = re.search(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", text)
+    # occupation detection: searching by keywords
+    occupation = ""
+    occ_keywords = [
+        # English
+        "student", "intern", "phd", "ph.d", "postdoc", "post-doctoral", "professor", "lecturer",
+        "researcher", "scientist", "data scientist", "data analyst", "software engineer",
+        "engineer", "developer", "full[- ]stack", "frontend", "backend", "machine learning",
+        "ml engineer", "research assistant", "manager", "consultant", "analyst", "architect",
+    ]
+
+   # searching first lines for occupation
+    for ln in lines[:8]:
+        lnl = ln.lower()
+        for kw in occ_keywords:
+            if re.search(r"\b" + kw + r"\b", lnl, re.IGNORECASE):
+                occupation = ln.strip()
+                break
+        if occupation:
+            break
+
+    # fallback: searching by keywords in the entire text
+    if not occupation:
+        esc_keys = [re.escape(k) for k in occ_keywords]
+        key_pat = r"|".join(esc_keys)
+        pattern = rf"((?:[A-Za-zÁÉÍÓÚÜÑáéíóúüñ\.\-']+\s?){{0,3}}(?:{key_pat})(?:\s?[A-Za-zÁÉÍÓÚÜÑáéíóúüñ\.\-']+){{0,3}})"
+        m = re.search(pattern, text, re.IGNORECASE)
+        if m:
+            occupation = m.group(1).strip()
+
+    # normalize common formats
+    if occupation:
+        occupation = re.sub(r"\s{2,}", " ", occupation)
+        occupation = re.sub(r"\bph[\.\s]?d\b", "PhD", occupation, flags=re.IGNORECASE)
+        occupation = occupation.strip()
+
+    # email
+    email_match = re.search(r"[ÑA-Zña-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}", text)
     email = email_match.group(0) if email_match else ""
 
-    # linkedin (url o handle)
-    linkedin_match = re.search(r"(https?://(?:www\.)?linkedin\.com/in/[A-Za-z0-9\-_]+)/?", text, re.IGNORECASE)
+    # linkedin
+    linkedin_match = re.search(r"(https?://(?:www\.)?linkedin\.com/in/[\w\-.%]+)/?", text, re.IGNORECASE)
     linkedin = linkedin_match.group(1) if linkedin_match else ""
     if not linkedin:
-        # también intentar sólo el handle linkedin.com/in/handle sin http
-        m = re.search(r"linkedin\.com/in/([A-Za-z0-9\-_]+)", text, re.IGNORECASE)
+        # try just the handle (allow Unicode word chars, dots, hyphens and %)
+        m = re.search(r"linkedin\.com/in/([\w\-.%]+)", text, re.IGNORECASE)
         if m:
             linkedin = "https://www.linkedin.com/in/" + m.group(1)
 
     # github
-    github_match = re.search(r"(https?://(?:www\.)?github\.com/[A-Za-z0-9\-_]+)/?", text, re.IGNORECASE)
+    github_match = re.search(r"(https?://(?:www\.)?github\.com/[\w\-.%]+)/?", text, re.IGNORECASE)
     github = github_match.group(1) if github_match else ""
     if not github:
-        m = re.search(r"github\.com/([A-Za-z0-9\-_]+)", text, re.IGNORECASE)
+        m = re.search(r"github\.com/([\w\-.%]+)", text, re.IGNORECASE)
         if m:
             github = "https://github.com/" + m.group(1)
+
+    # personal website (deployed in github pages)
+    website_match = re.search(r"(https?://[A-Za-z0-9\-_]+\.github\.io)/?", text, re.IGNORECASE)
+    website = website_match.group(1) if website_match else ""
+    if not website:
+        m = re.search(r"([A-Za-z0-9\-_]+\.github\.io)/?", text, re.IGNORECASE)
+        if m:
+            website = "https://" + m.group(1)
+
+    # additional profiles detection
+    profiles = {}
+    host_patterns = {
+       "instagram": r"https?://(?:www\.)?instagram\.com/([A-Za-z0-9\._]+)/?",
+       "x": r"https?://(?:www\.)?x\.com/([A-Za-z0-9_]+)/?",
+       "twitter": r"https?://(?:www\.)?twitter\.com/([A-Za-z0-9_]+)/?",
+       "gitlab": r"https?://(?:www\.)?gitlab\.com/([A-Za-z0-9\-_]+)/?",
+       "tiktok": r"https?://(?:www\.)?tiktok\.com/@?([A-Za-z0-9\-_]+)/?",
+       "facebook": r"https?://(?:www\.)?facebook\.com/([A-Za-z0-9\.\-_]+)/?",
+       "stackoverflow": r"https?://(?:www\.)?stackoverflow\.com/users/([0-9]+/[A-Za-z0-9\-_]+)/?",
+       "medium": r"https?://(?:www\.)?medium\.com/@?([A-Za-z0-9\-_]+)/?",
+       "devto": r"https?://(?:www\.)?dev\.to/([A-Za-z0-9\-_]+)/?",
+       "kaggle": r"https?://(?:www\.)?kaggle\.com/([A-Za-z0-9\-_]+)/?",
+       "codepen": r"https?://(?:www\.)?codepen\.io/([A-Za-z0-9\-_]+)/?",
+       "leetcode": r"https?://(?:www\.)?leetcode\.com/([A-Za-z0-9\-/]+)/?",
+       "hackerrank": r"https?://(?:www\.)?hackerrank\.com/([A-Za-z0-9\-_]+)/?",
+       "bitbucket": r"https?://(?:www\.)?bitbucket\.org/([A-Za-z0-9\-_]+)/?",
+       "google_scholar": r"https?://scholar\.google\.com/citations\?user=([A-Za-z0-9\-_]+)/?",
+       "arxiv": r"https?://arxiv\.org/a/([A-Za-z0-9\-_]+)/?",
+       "orcid": r"https?://orcid\.org/([0-9\-X]+)/?",
+       "dialnet": r"https?://dialnet\.unirioja\.es/servlet/articulo?codigo=([0-9]+)/?",
+       "scopus": r"https?://www\.scopus\.com/authid/detail\.uri\?authorId=([0-9]+)/?",
+       "researchgate": r"https?://(?:www\.)?researchgate\.net/profile/([A-Za-z0-9\-_]+)/?",
+       "academia": r"https?://(?:www\.)?academia\.edu/([A-Za-z0-9\-_]+)/?"
+    }
+    
+    for key, pat in host_patterns.items():
+        m = re.search(pat, text, re.IGNORECASE)
+        if m:
+            # reconstruct a clean URL for the profile
+            handle = m.group(1).rstrip("/")
+            base = {
+                "instagram": "https://instagram.com/",
+                "x": "https://x.com/",
+                "twitter": "https://twitter.com/",
+                "tiktok": "https://www.tiktok.com/@",
+                "facebook": "https://www.facebook.com/",
+                "gitlab": "https://gitlab.com/",
+                "stackoverflow": "https://stackoverflow.com/users/",
+                "medium": "https://medium.com/@",
+                "devto": "https://dev.to/",
+                "kaggle": "https://kaggle.com/",
+                "codepen": "https://codepen.io/",
+                "leetcode": "https://leetcode.com/",
+                "hackerrank": "https://www.hackerrank.com/",
+                "bitbucket": "https://bitbucket.org/",
+                "google_scholar": "https://scholar.google.com/citations?user=",
+                "arxiv": "https://arxiv.org/a/",
+                "orcid": "https://orcid.org/",
+                "dialnet": "https://dialnet.unirioja.es/servlet/articulo?codigo=",
+                "scopus": "https://www.scopus.com/authid/detail.uri?authorId=",
+                "researchgate": "https://www.researchgate.net/profile/",
+                "academia": "https://www.academia.edu/"
+            }[key]
+            profiles[key] = base + handle
+
+    # fallback: detect other http(s) URLs (personal website / portfolio) excluding known hosts
+    if "website" not in profiles:
+        all_urls = re.findall(r"https?://[^\s\)\]\>]+", text)
+        known_hosts = ("github.com", "linkedin.com", "instagram.com", "x.com", "twitter.com",
+                       "gitlab.com", "facebook.com", "tiktok.com", "stackoverflow.com", "medium.com", "dev.to",
+                       "kaggle.com", "codepen.io", "leetcode.com", "hackerrank.com",
+                       "bitbucket.org", "dialnet.unirioja.es", "scholar.google.com", "arxiv.org", "orcid.org", "scopus.com", "researchgate.net", "academia.edu")
+        for u in all_urls:
+           u_clean = u.rstrip(".,;)")
+           if not any(h in u_clean for h in known_hosts):
+            profiles["website"] = u_clean
+            break
 
     # skills: heurística simple: buscar sección "Skills" o "Habilidades" y tomar la línea o lista siguiente
     skills = []
@@ -143,17 +209,21 @@ def extract_data_from_pdf(path):
     data = {
         "first_name": first_name,
         "last_name": last_name,
+        "occupation": occupation,
         "email": email,
         "linkedin": linkedin,
         "github": github,
-        "skills": skills
+        "website": website,
+        "profiles": profiles,
+        "skills": skills,
     }
     return data
 
 def generate_readme(data):
+
     """
     Generates a simple README.md based on fields in the user CV.
-    data: dict con keys: first_name, last_name, email, linkedin, github, skills (list)
+    data: dict with keys: first_name, last_name, email, linkedin, github, website, profiles (list), skills (list)
     """
 
     # NAME
@@ -163,10 +233,17 @@ def generate_readme(data):
     md = []
     md.append(f"<h1 align=\"center\">Hi 👋, I'm {fn} </h1>")
 
+    # MAIN OCCUPATION
+    occ = data.get("occupation", "") or ""
+    if occ:
+        md.append(f"<h3 align=\"center\">{occ}</h3>\n")
+
     # SOCIAL ICONS
     email = data.get("email", "") or ""
     linkedin = data.get("linkedin", "") or ""
     github = data.get("github", "") or ""
+    website = data.get("website", "") or ""
+    profiles = data.get("profiles", {}) or {}
 
     icons = []
     if email:
@@ -175,6 +252,71 @@ def generate_readme(data):
         icons.append(f'<a href="{linkedin}"><img width="40px" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linkedin/linkedin-original.svg"></a>')
     if github:
         icons.append(f'<a href="{github}"><img width="40px" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg"></a>')
+    if profiles.get("instagram"):
+        instagram = profiles["instagram"]
+        icons.append(f'<a href="{instagram}"><img width="40px" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/instagram/instagram-original.svg"></a>')
+    if profiles.get("x"):
+        x = profiles["x"]
+        icons.append(f'<a href="{x}"><img width="40px" src="https://img.icons8.com/ios-filled/50/000000/twitter--v1.png"></a>')
+    if profiles.get("twitter"):
+        twitter = profiles["twitter"]
+        icons.append(f'<a href="{twitter}"><img width="40px" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/twitter/twitter-original.svg"></a>')
+    if profiles.get("gitlab"):
+        gitlab = profiles["gitlab"]
+        icons.append(f'<a href="{gitlab}"><img width="40px" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/gitlab/gitlab-original.svg"></a>')
+    if profiles.get("facebook"):
+        facebook = profiles["facebook"]
+        icons.append(f'<a href="{facebook}"><img width="40px" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/facebook/facebook-original.svg"></a>')
+    if profiles.get("tiktok"):
+        tiktok = profiles["tiktok"]
+        icons.append(f'<a href="{tiktok}"><img width="40px" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/tiktok/tiktok-original.svg"></a>')
+    if profiles.get("stackoverflow"):
+        stackoverflow = profiles["stackoverflow"]
+        icons.append(f'<a href="{stackoverflow}"><img width="40px" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/stackoverflow/stackoverflow-original.svg"></a>')
+    if profiles.get("medium"):
+        medium = profiles["medium"]
+        icons.append(f'<a href="{medium}"><img width="40px" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/medium/medium-original.svg"></a>')
+    if profiles.get("devto"):
+        devto = profiles["devto"]
+        icons.append(f'<a href="{devto}"><img width="40px" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/devto/devto-original.svg"></a>')
+    if profiles.get("kaggle"):
+        kaggle = profiles["kaggle"]
+        icons.append(f'<a href="{kaggle}"><img width="40px" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kaggle/kaggle-original.svg"></a>')
+    if profiles.get("codepen"):
+        codepen = profiles["codepen"]
+        icons.append(f'<a href="{codepen}"><img width="40px" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/codepen/codepen-original.svg"></a>')
+    if profiles.get("leetcode"):
+        leetcode = profiles["leetcode"]
+        icons.append(f'<a href="{leetcode}"><img width="40px" src="https://img.icons8.com/ios-filled/50/000000/leetcode.png"></a>')
+    if profiles.get("hackerrank"):
+        hackerrank = profiles["hackerrank"]
+        icons.append(f'<a href="{hackerrank}"><img width="40px" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/hackerrank/hackerrank-original.svg"></a>')
+    if profiles.get("bitbucket"):
+        bitbucket = profiles["bitbucket"]
+        icons.append(f'<a href="{bitbucket}"><img width="40px" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/bitbucket/bitbucket-original.svg"></a>')
+    if profiles.get("google_scholar"):
+        google_scholar = profiles["google_scholar"]
+        icons.append(f'<a href="{google_scholar}"><img width="40px" src="https://img.icons8.com/ios-filled/50/000000/google-scholar.png"></a>')     
+    if profiles.get("arxiv"):
+        arxiv = profiles["arxiv"]
+        icons.append(f'<a href="{arxiv}"><img width="40px" src="https://upload.wikimedia.org/wikipedia/commons/4/45/ArXiv_logo.svg"></a>')
+    if profiles.get("orcid"):
+        orcid = profiles["orcid"]
+        icons.append(f'<a href="{orcid}"><img width="40px" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a>')
+    if profiles.get("dialnet"):
+        dialnet = profiles["dialnet"]
+        icons.append(f'<a href="{dialnet}"><img width="40px" src="https://dialnet.unirioja.es/images/dialnet-logo.png"></a>')
+    if profiles.get("scopus"):
+        scopus = profiles["scopus"]
+        icons.append(f'<a href="{scopus}"><img width="40px" src="https://www.elsevier.com/__data/assets/image/0007/69401/scopus-logo.png"></a>')
+    if profiles.get("researchgate"):
+        researchgate = profiles["researchgate"]
+        icons.append(f'<a href="{researchgate}"><img width="40px" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/researchgate/researchgate-original.svg"></a>')
+    if profiles.get("academia"):
+        academia = profiles["academia"]
+        icons.append(f'<a href="{academia}"><img width="40px" src="https://upload.wikimedia.org/wikipedia/commons/1/12/Academia.edu_logo.png"></a>')
+    if website:
+        icons.append(f'<a href="{website}"><img width="40px" src="https://img.icons8.com/ios-filled/50/000000/portfolio.png" alt="Personal website"></a>')
 
     # We will add social icons for every social found 
     if icons:
@@ -220,12 +362,10 @@ def generate_readme(data):
         md.append('&nbsp;')
         md.append(f'    <img align="center" height=200 alt="{github_username}\'s Top Languages" src="https://github-readme-stats.vercel.app/api/top-langs/?username={github_username}&langs_count=8&layout=compact" />')
         md.append('</p>')
-        md.append('<p align="center">')
-        md.append(f'  <img src="https://streak-stats.demolab.com?user={github_username}&theme=transparent&date_format=j%20M%5B%20Y%5D" height="180em"/>')
-        md.append('</p>')
         md.append('</details>\n')
 
    # FOOTER
     md.append("---\n")
-    md.append("Generado con cv-to-github-readme (local parser). Revisa y ajusta antes de publicar.\n")
+    # Include footer with link to the tool written in italics
+    md.append('[![Generated with cv-to-github-readme](https://img.shields.io/badge/Generated%20with-cv--to--github--readme-blue?logo=github)](https://github.com/pablofazio02/cv-to-github-readme)')
     return "\n".join(md)

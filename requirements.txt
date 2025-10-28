@@ -1,1 +1,2 @@
-pdfplumber==0.7.4
+pdfplumber
+PyPDF2
