@@ -10,6 +10,7 @@ Usage (Windows):
 Usage (Linux/Mac):
     python3 app.py route/to/cv.pdf -o generated_README.md [--no-edit]
 ======================================================================
+
 """
 
 import argparse
@@ -36,6 +37,7 @@ def prompt_edit(data):
         new = input(f"{key.replace('_',' ').title()} [{current}]: ").strip()
         if new:
             data[key] = new
+    
     current_skills = data.get("skills", [])
     print(f"Current skills: {', '.join(current_skills) if current_skills else '(none)'}")
     s = input("Enter skills separated by commas (empty to keep, prefix '+' to add): ").strip()

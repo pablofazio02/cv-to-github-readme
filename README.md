@@ -1,6 +1,8 @@
 # cv-to-github-readme
 
-Local CLI tool that parses a PDF CV and generates a GitHub profile README (in Markdown). The tool extracts primary contact info, public profiles and skills and builds a ready-to-use README template with optional GitHub stats badges.
+Local CLI tool that parses a PDF CV and generates a GitHub profile README (in Markdown). The tool extracts primary contact info, public profiles and skills and builds a ready-to-use profile README template with optional GitHub stats badges.
+
+**IMPORTANT**: It is recommended to have a GitHub profile linked from your CV for best results.
 
 ## Features
 
@@ -11,9 +13,8 @@ Local CLI tool that parses a PDF CV and generates a GitHub profile README (in Ma
   - GitHub stats + top languages cards
   - Optional GitHub streak badge
   - Skills section
-- Fully local: no server required, no uploads — all processing happens on your machine.
+- Fully local: no server required, no uploads
 - CLI preview and interactive editing before writing the README file.
-- Optional auto-open in VS Code preview.
 
 ## Quick install (Windows)
 
@@ -66,7 +67,9 @@ MIT License — see LICENSE file. Short summary: you are free to use, modify and
 - Add more profile hosts and skill parsing improvements.
 - New README template options.
 - Support for more input formats (DOCX, ODT, etc.).
-- Improve regular expressions detection (e.g. usernames with Unicode characters).
+- Improve regular expressions detection (e.g. usernames with Unicode characters /AI API support).
+- Normalize profile URLs both when parsing from CV and when editing the generated README.
+- Links parsing
 
 ---
 
