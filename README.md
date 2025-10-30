@@ -1,6 +1,8 @@
-# cv-to-github-readme
+# cv-to-github-readme 
 
 Local CLI tool that parses a PDF CV and generates a GitHub profile README (in Markdown). The tool extracts primary contact info, public profiles and skills and builds a ready-to-use profile README template with optional GitHub stats badges.
+
+![Initial Demo](assets/initial_demo.gif)
 
 **IMPORTANT**: It is recommended to have a GitHub profile linked from your CV for best results.
 
