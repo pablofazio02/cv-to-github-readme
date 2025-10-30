@@ -1,6 +1,6 @@
 # cv-to-github-readme 
 
-Local CLI tool that parses a PDF CV and generates a GitHub profile README (in Markdown). The tool extracts primary contact info, public profiles and skills and builds a ready-to-use profile README template with optional GitHub stats badges.
+Local CLI tool that parses a PDF CV and generates a GitHub profile README (in Markdown). The tool extracts primary contact information, public profiles and skills and builds a ready-to-use profile README template with optional GitHub stats badges.
 
 ![Initial Demo](assets/initial_demo.gif)
 
@@ -34,7 +34,7 @@ python -m venv venv
 pip install -r requirements.txt
 
 # Run the app
-python app.py "C:\path\to\CV.pdf" -o generated_README.md [--no-edit] [--open-vscode]
+python app.py "C:\path\to\CV.pdf" -o generated_README.md [--no-edit]
 ```
 
 ## Quick install (Linux / macOS)
@@ -52,7 +52,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Run the app
-python3 app.py "/path/to/CV.pdf" -o generated_README.md [--no-edit] [--open-vscode]
+python3 app.py "/path/to/CV.pdf" -o generated_README.md [--no-edit]
 ```
 
 ## Privacy
